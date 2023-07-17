@@ -1,0 +1,70 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <signal.h>
+
+#define NUM_CHILDREN 3
+
+// Function to handle the interrupt signal received by the child processes
+void handleInterrupt(int signum) {
+    printf("Child %d received an interrupt message!\n", getpid());
+}
+
+int main() {
+    pid_t child_pids[NUM_CHILDREN];
+    int communication_pipes[NUM_CHILDREN][2];
+
+    // Create pipes for message passing
+    for (int i = 0; i < NUM_CHILDREN; i++) {
+        if (pipe(communication_pipes[i]) == -1) {
+            perror("Pipe creation failed");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // Fork into child processes
+    for (int i = 0; i < NUM_CHILDREN; i++) {
+        pid_t child_pid = fork();
+
+        if (child_pid < 0) {
+            perror("Fork failed");
+            exit(EXIT_FAILURE);
+        } else if (child_pid == 0) {
+            // Child process
+            close(communication_pipes[i][1]); // Close the write end of the pipe
+
+            // Install signal handler for interrupt
+            signal(SIGINT, handleInterrupt);
+
+            // Read message from the parent
+            char message[50];
+            read(communication_pipes[i][0], message, sizeof(message));
+            printf("Child %d received message: %s\n", getpid(), message);
+
+            close(communication_pipes[i][0]); // Close the read end of the pipe
+            exit(EXIT_SUCCESS);
+        } else {
+            // Parent process
+            child_pids[i] = child_pid;
+            close(communication_pipes[i][0]); // Close the read end of the pipe
+
+            // Send a message to the child
+            char message[50];
+            sprintf(message, "Hello from Parent to Child %d", i + 1);
+            write(communication_pipes[i][1], message, sizeof(message));
+            close(communication_pipes[i][1]); // Close the write end of the pipe
+        }
+    }
+
+    // Parent process prints its own message
+    printf("Parent process: Forked %d child processes.\n", NUM_CHILDREN);
+
+    // Parent process waits for all children to finish
+    for (int i = 0; i < NUM_CHILDREN; i++) {
+        waitpid(child_pids[i], NULL, 0);
+    }
+
+    return 0;
+}
