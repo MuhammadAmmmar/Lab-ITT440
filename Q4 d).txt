@@ -1,0 +1,56 @@
+import threading
+
+class FibonacciThread(threading.Thread):
+    def __init__(self, start, end):
+        super(FibonacciThread, self).__init__()
+        self.start = start
+        self.end = end
+
+    def run(self):
+        a, b = 0, 1
+        fib_list = [a]
+        for _ in range(self.end - 1):
+            a, b = b, a + b
+            fib_list.append(a)
+            if a >= self.start and a <= self.end:
+                print(f"Fibonacci: {a}")
+
+class SquareThread(threading.Thread):
+    def __init__(self, start, end):
+        super(SquareThread, self).__init__()
+        self.start = start
+        self.end = end
+
+    def run(self):
+        square_list = [x**2 for x in range(self.start, self.end + 1)]
+        for square in square_list:
+            print(f"Square: {square}")
+
+class CubeThread(threading.Thread):
+    def __init__(self, start, end):
+        super(CubeThread, self).__init__()
+        self.start = start
+        self.end = end
+
+    def run(self):
+        cube_list = [x**3 for x in range(self.start, self.end + 1)]
+        for cube in cube_list:
+            print(f"Cube: {cube}")
+
+if __name__ == "__main__":
+    start = 1
+    end = 10000
+
+    fibonacci_thread = FibonacciThread(start, end)
+    square_thread = SquareThread(start, end)
+    cube_thread = CubeThread(start, end)
+
+    fibonacci_thread.start()
+    square_thread.start()
+    cube_thread.start()
+
+    fibonacci_thread.join()
+    square_thread.join()
+    cube_thread.join()
+
+    print("Multithreading program completed!")
